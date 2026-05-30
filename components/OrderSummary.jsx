@@ -1,5 +1,5 @@
 import { PlusIcon, SquarePenIcon, XIcon } from 'lucide-react';
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AddressModal from './AddressModal';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearCart } from '@/lib/features/cart/cartSlice';
@@ -13,7 +13,7 @@ const OrderSummary = ({ totalPrice, items }) => {
     const router = useRouter();
 
     const dispatch = useDispatch();
-    const addressList = useSelector(state => state.address.list);
+   const [addressList, setAddressList] = useState([]);
 
     const [paymentMethod, setPaymentMethod] = useState('COD');
     const [selectedAddress, setSelectedAddress] = useState(null);
@@ -66,6 +66,33 @@ const handlePlaceOrder = async (e) => {
 
     return data;
 }
+
+const fetchAddresses = async () => {
+    try {
+        const res = await fetch("/api/addresses", {
+            cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch addresses");
+        }
+
+        setAddressList(data.addresses);
+
+        if (data.addresses.length > 0 && !selectedAddress) {
+            setSelectedAddress(data.addresses[0]);
+        }
+    } catch (error) {
+        console.error("FETCH_ADDRESSES_ERROR:", error);
+        toast.error(error.message || "Failed to fetch addresses");
+    }
+};
+
+    useEffect(() => {
+        fetchAddresses();
+    }, []);
 
     return (
         <div className='w-full max-w-lg lg:max-w-[340px] bg-slate-50/30 border border-slate-200 text-slate-500 text-sm rounded-xl p-7'>
@@ -151,7 +178,15 @@ const handlePlaceOrder = async (e) => {
     Place Order
 </button>
 
-            {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} />}
+           {showAddressModal && (
+    <AddressModal
+        setShowAddressModal={setShowAddressModal}
+        onAddressAdded={(newAddress) => {
+            setAddressList((prev) => [newAddress, ...prev]);
+            setSelectedAddress(newAddress);
+        }}
+    />
+)}
 
         </div>
     )
