@@ -6,11 +6,35 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const body = await req.json();
 
+    const updateData = {};
+
+    if (typeof body.inStock === "boolean") {
+      updateData.inStock = body.inStock;
+    }
+
+    if (body.name !== undefined) {
+      updateData.name = body.name;
+    }
+
+    if (body.description !== undefined) {
+      updateData.description = body.description;
+    }
+
+    if (body.category !== undefined) {
+      updateData.category = body.category;
+    }
+
+    if (body.mrp !== undefined) {
+      updateData.mrp = Number(body.mrp);
+    }
+
+    if (body.price !== undefined) {
+      updateData.price = Number(body.price);
+    }
+
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        inStock: body.inStock,
-      },
+      data: updateData,
     });
 
     return NextResponse.json({
@@ -25,6 +49,7 @@ export async function PATCH(req, { params }) {
       {
         success: false,
         message: "Failed to update product",
+        error: error.message,
       },
       { status: 500 }
     );
