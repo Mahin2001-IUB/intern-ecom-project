@@ -24,14 +24,65 @@ export default function StoreAddProduct() {
     }
 
     const onSubmitHandler = async (e) => {
-        e.preventDefault()
-        // Logic to add a product
-        
+    e.preventDefault()
+    setLoading(true)
+
+    try {
+        const formData = new FormData()
+
+        formData.append("name", productInfo.name)
+        formData.append("description", productInfo.description)
+        formData.append("mrp", productInfo.mrp)
+        formData.append("price", productInfo.price)
+        formData.append("category", productInfo.category)
+
+        Object.values(images).forEach((image) => {
+            if (image) {
+                formData.append("images", image)
+            }
+        })
+
+        const res = await fetch("/api/products", {
+            method: "POST",
+            body: formData,
+        })
+
+        const data = await res.json()
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to add product")
+        }
+
+        setProductInfo({
+            name: "",
+            description: "",
+            mrp: 0,
+            price: 0,
+            category: "",
+        })
+
+        setImages({ 1: null, 2: null, 3: null, 4: null })
+
+        return data
+    } catch (error) {
+        throw error
+    } finally {
+        setLoading(false)
     }
+}
 
 
     return (
-        <form onSubmit={e => toast.promise(onSubmitHandler(e), { loading: "Adding Product..." })} className="text-slate-500 mb-28">
+        <form
+    onSubmit={e =>
+        toast.promise(onSubmitHandler(e), {
+            loading: "Adding Product...",
+            success: "Product added successfully!",
+            error: (err) => err.message || "Failed to add product",
+        })
+    }
+    className="text-slate-500 mb-28"
+>
             <h1 className="text-2xl">Add New <span className="text-slate-800 font-medium">Products</span></h1>
             <p className="mt-7">Product Images</p>
 
