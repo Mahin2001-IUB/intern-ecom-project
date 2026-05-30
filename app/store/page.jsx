@@ -1,5 +1,5 @@
 'use client'
-import { dummyStoreDashboardData } from "@/assets/assets"
+
 import Loading from "@/components/Loading"
 import { CircleDollarSignIcon, ShoppingBasketIcon, StarIcon, TagsIcon } from "lucide-react"
 import Image from "next/image"
@@ -28,9 +28,24 @@ export default function Dashboard() {
     ]
 
     const fetchDashboardData = async () => {
-        setDashboardData(dummyStoreDashboardData)
+    try {
+        const res = await fetch("/api/store/dashboard", {
+            cache: "no-store",
+        })
+
+        const data = await res.json()
+
+        if (!data.success) {
+            throw new Error(data.message || "Failed to fetch dashboard data")
+        }
+
+        setDashboardData(data.dashboardData)
+    } catch (error) {
+        console.error("DASHBOARD_DATA_ERROR:", error)
+    } finally {
         setLoading(false)
     }
+}
 
     useEffect(() => {
         fetchDashboardData()
