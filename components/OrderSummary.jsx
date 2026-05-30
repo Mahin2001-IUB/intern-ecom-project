@@ -1,7 +1,8 @@
 import { PlusIcon, SquarePenIcon, XIcon } from 'lucide-react';
 import React, { useState } from 'react'
 import AddressModal from './AddressModal';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearCart } from '@/lib/features/cart/cartSlice';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
@@ -11,6 +12,7 @@ const OrderSummary = ({ totalPrice, items }) => {
 
     const router = useRouter();
 
+    const dispatch = useDispatch();
     const addressList = useSelector(state => state.address.list);
 
     const [paymentMethod, setPaymentMethod] = useState('COD');
@@ -23,12 +25,47 @@ const OrderSummary = ({ totalPrice, items }) => {
         event.preventDefault();
         
     }
+const handlePlaceOrder = async (e) => {
+    e.preventDefault();
 
-    const handlePlaceOrder = async (e) => {
-        e.preventDefault();
-
-        router.push('/orders')
+    if (!selectedAddress) {
+        throw new Error("Please select an address");
     }
+
+    if (!items || items.length === 0) {
+        throw new Error("Cart is empty");
+    }
+
+    const orderItems = items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+    }));
+
+    const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            items: orderItems,
+            addressId: selectedAddress.id,
+            paymentMethod,
+            coupon: coupon || null,
+        }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+        throw new Error(data.message || "Failed to place order");
+    }
+
+    dispatch(clearCart());
+
+    router.push("/orders");
+
+    return data;
+}
 
     return (
         <div className='w-full max-w-lg lg:max-w-[340px] bg-slate-50/30 border border-slate-200 text-slate-500 text-sm rounded-xl p-7'>
@@ -101,7 +138,18 @@ const OrderSummary = ({ totalPrice, items }) => {
                 <p>Total:</p>
                 <p className='font-medium text-right'>{currency}{coupon ? (totalPrice - (coupon.discount / 100 * totalPrice)).toFixed(2) : totalPrice.toLocaleString()}</p>
             </div>
-            <button onClick={e => toast.promise(handlePlaceOrder(e), { loading: 'placing Order...' })} className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'>Place Order</button>
+            <button
+    onClick={e =>
+        toast.promise(handlePlaceOrder(e), {
+            loading: "Placing order...",
+            success: "Order placed successfully!",
+            error: (err) => err.message || "Failed to place order",
+        })
+    }
+    className='w-full bg-slate-700 text-white py-2.5 rounded hover:bg-slate-900 active:scale-95 transition-all'
+>
+    Place Order
+</button>
 
             {showAddressModal && <AddressModal setShowAddressModal={setShowAddressModal} />}
 
