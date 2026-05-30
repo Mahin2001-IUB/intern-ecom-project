@@ -139,3 +139,94 @@ export async function POST(req) {
     );
   }
 }
+
+export async function PUT(req) {
+  try {
+    const userId = "user_1";
+    const formData = await req.formData();
+
+    const username = formData.get("username");
+    const name = formData.get("name");
+    const description = formData.get("description");
+    const email = formData.get("email");
+    const contact = formData.get("contact");
+    const address = formData.get("address");
+    const image = formData.get("image");
+
+    if (!username || !name || !description || !email || !contact || !address) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "All store fields are required",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingStore = await prisma.store.findFirst({
+      where: {
+        userId,
+      },
+    });
+
+    if (!existingStore) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Store not found",
+        },
+        { status: 404 }
+      );
+    }
+
+    let logo = existingStore.logo;
+
+    if (image && image.size > 0) {
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "stores");
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const bytes = await image.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const safeFileName = image.name.replaceAll(" ", "-");
+      const fileName = `${Date.now()}-${safeFileName}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      await fs.writeFile(filePath, buffer);
+
+      logo = `/uploads/stores/${fileName}`;
+    }
+
+    const store = await prisma.store.update({
+      where: {
+        id: existingStore.id,
+      },
+      data: {
+        username,
+        name,
+        description,
+        email,
+        contact,
+        address,
+        logo,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Store updated successfully",
+      store,
+    });
+  } catch (error) {
+    console.error("UPDATE_STORE_ERROR:", error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message: "Failed to update store",
+        error: error.message,
+      },
+      { status: 500 }
+    );
+  }
+}

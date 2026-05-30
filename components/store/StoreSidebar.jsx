@@ -6,6 +6,7 @@ import {
   LayoutListIcon,
   SquarePenIcon,
   SquarePlusIcon,
+  SettingsIcon,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +19,7 @@ const StoreSidebar = ({ storeInfo }) => {
     { name: "Add Product", href: "/store/add-product", icon: SquarePlusIcon },
     { name: "Manage Product", href: "/store/manage-product", icon: SquarePenIcon },
     { name: "Orders", href: "/store/orders", icon: LayoutListIcon },
+    { name: "Settings", href: "/store/settings", icon: SettingsIcon },
   ];
 
   return (
