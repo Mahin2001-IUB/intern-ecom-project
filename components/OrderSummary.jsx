@@ -21,10 +21,34 @@ const OrderSummary = ({ totalPrice, items }) => {
     const [couponCodeInput, setCouponCodeInput] = useState('');
     const [coupon, setCoupon] = useState('');
 
-    const handleCouponCode = async (event) => {
-        event.preventDefault();
-        
+   const handleCouponCode = async (event) => {
+    event.preventDefault();
+
+    if (!couponCodeInput.trim()) {
+        throw new Error("Please enter a coupon code");
     }
+
+    const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            code: couponCodeInput,
+        }),
+    });
+
+    const data = await res.json();
+
+    if (!data.success) {
+        throw new Error(data.message || "Invalid coupon code");
+    }
+
+    setCoupon(data.coupon);
+    setCouponCodeInput("");
+
+    return data;
+}
 const handlePlaceOrder = async (e) => {
     e.preventDefault();
 
@@ -148,7 +172,16 @@ const fetchAddresses = async () => {
                 </div>
                 {
                     !coupon ? (
-                        <form onSubmit={e => toast.promise(handleCouponCode(e), { loading: 'Checking Coupon...' })} className='flex justify-center gap-3 mt-3'>
+                        <form
+    onSubmit={e =>
+        toast.promise(handleCouponCode(e), {
+            loading: "Checking coupon...",
+            success: "Coupon applied successfully!",
+            error: (err) => err.message || "Invalid coupon code",
+        })
+    }
+    className='flex justify-center gap-3 mt-3'
+>
                             <input onChange={(e) => setCouponCodeInput(e.target.value)} value={couponCodeInput} type="text" placeholder='Coupon Code' className='border border-slate-400 p-1.5 rounded w-full outline-none' />
                             <button className='bg-slate-600 text-white px-3 rounded hover:bg-slate-800 active:scale-95 transition-all'>Apply</button>
                         </form>
