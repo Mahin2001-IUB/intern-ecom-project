@@ -1,6 +1,15 @@
 "use client";
 
-import { MenuIcon, Search, ShoppingCart, XIcon } from "lucide-react";
+import {
+  MenuIcon,
+  Search,
+  ShoppingCart,
+  XIcon,
+  ChevronDownIcon,
+  LayoutDashboardIcon,
+  PackageIcon,
+  StoreIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,6 +22,7 @@ const Navbar = () => {
 
   const [search, setSearch] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
   const [storeInfo, setStoreInfo] = useState(null);
   const [storeLoading, setStoreLoading] = useState(false);
 
@@ -56,6 +66,7 @@ const Navbar = () => {
 
     if (isLoaded && !isSignedIn) {
       setStoreInfo(null);
+      setAccountDropdownOpen(false);
     }
   }, [isLoaded, isSignedIn]);
 
@@ -65,24 +76,44 @@ const Navbar = () => {
     user?.primaryEmailAddress?.emailAddress ||
     "User";
 
-  const StoreStatusLink = () => {
+  const closeMenus = () => {
+    setMobileMenuOpen(false);
+    setAccountDropdownOpen(false);
+  };
+
+  const StoreDropdownItem = () => {
     if (storeLoading) return null;
 
     if (!storeInfo) {
       return (
-        <Link href="/create-store" className="text-green-600 font-medium">
+        <Link
+          href="/create-store"
+          onClick={closeMenus}
+          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 text-green-600"
+        >
+          <StoreIcon size={17} />
           Apply for Store
         </Link>
       );
     }
 
     if (storeInfo.status === "pending") {
-      return <span className="text-yellow-600 font-medium">Store Pending</span>;
+      return (
+        <div className="flex items-center gap-2 px-4 py-2 text-yellow-600 cursor-default">
+          <StoreIcon size={17} />
+          Store Pending
+        </div>
+      );
     }
 
     if (storeInfo.status === "rejected") {
       return (
-        <Link href="/create-store" className="text-red-500 font-medium">
+        <Link
+          href="/create-store"
+          onClick={closeMenus}
+          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 text-red-500"
+        >
+          <StoreIcon size={17} />
           Reapply Store
         </Link>
       );
@@ -90,7 +121,12 @@ const Navbar = () => {
 
     if (storeInfo.status === "approved" && storeInfo.isActive) {
       return (
-        <Link href="/store" className="text-green-600 font-medium">
+        <Link
+          href="/store"
+          onClick={closeMenus}
+          className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100 text-green-600"
+        >
+          <StoreIcon size={17} />
           Store Panel
         </Link>
       );
@@ -124,9 +160,64 @@ const Navbar = () => {
     }
 
     return (
-      <Link href="/cart" onClick={() => setMobileMenuOpen(false)}>
+      <Link href="/cart" onClick={closeMenus}>
         {cartContent}
       </Link>
+    );
+  };
+
+  const AccountDropdown = ({ mobile = false }) => {
+    return (
+      <div className={mobile ? "w-full" : "relative"}>
+        <button
+          onClick={() => setAccountDropdownOpen((prev) => !prev)}
+          className={`flex items-center gap-1 text-slate-700 ${
+            mobile
+              ? "w-full justify-between py-2"
+              : "max-w-32 xl:max-w-40 truncate"
+          }`}
+        >
+          <span className="truncate">
+            Hi, <span className="font-medium">{userDisplayName}</span>
+          </span>
+          <ChevronDownIcon
+            size={16}
+            className={`transition ${
+              accountDropdownOpen ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+
+        {accountDropdownOpen && (
+          <div
+            className={
+              mobile
+                ? "mt-2 border border-slate-200 rounded-lg overflow-hidden bg-white"
+                : "absolute right-0 top-9 w-52 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden z-50"
+            }
+          >
+            <Link
+              href="/dashboard"
+              onClick={closeMenus}
+              className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100"
+            >
+              <LayoutDashboardIcon size={17} />
+              Dashboard
+            </Link>
+
+            <Link
+              href="/orders"
+              onClick={closeMenus}
+              className="flex items-center gap-2 px-4 py-2 hover:bg-slate-100"
+            >
+              <PackageIcon size={17} />
+              My Orders
+            </Link>
+
+            <StoreDropdownItem />
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -138,7 +229,7 @@ const Navbar = () => {
           <Link
             href="/"
             className="relative shrink-0 text-3xl sm:text-4xl font-semibold text-slate-700"
-            onClick={() => setMobileMenuOpen(false)}
+            onClick={closeMenus}
           >
             <span className="text-green-600">go</span>cart
             <span className="text-green-600 text-4xl sm:text-5xl leading-0">
@@ -174,7 +265,7 @@ const Navbar = () => {
           </form>
 
           {/* Desktop Auth Area */}
-          <div className="hidden lg:flex items-center gap-4 xl:gap-6 text-slate-600">
+          <div className="hidden lg:flex items-center gap-5 xl:gap-6 text-slate-600">
             <CartButton />
 
             {!isSignedIn ? (
@@ -185,13 +276,7 @@ const Navbar = () => {
               </SignInButton>
             ) : (
               <>
-                <Link href="/orders">My Orders</Link>
-
-                <StoreStatusLink />
-
-                <p className="text-slate-700 max-w-28 xl:max-w-36 truncate">
-                  Hi, <span className="font-medium">{userDisplayName}</span>
-                </p>
+                <AccountDropdown />
 
                 <SignOutButton>
                   <button className="px-6 py-2 bg-slate-700 hover:bg-slate-900 transition text-white rounded-full">
@@ -230,19 +315,19 @@ const Navbar = () => {
               />
             </form>
 
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/" onClick={closeMenus}>
               Home
             </Link>
 
-            <Link href="/shop" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/shop" onClick={closeMenus}>
               Shop
             </Link>
 
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/" onClick={closeMenus}>
               About
             </Link>
 
-            <Link href="/" onClick={() => setMobileMenuOpen(false)}>
+            <Link href="/" onClick={closeMenus}>
               Contact
             </Link>
 
@@ -256,17 +341,7 @@ const Navbar = () => {
               </SignInButton>
             ) : (
               <>
-                <Link href="/orders" onClick={() => setMobileMenuOpen(false)}>
-                  My Orders
-                </Link>
-
-                <div onClick={() => setMobileMenuOpen(false)}>
-                  <StoreStatusLink />
-                </div>
-
-                <p className="text-slate-700">
-                  Hi, <span className="font-medium">{userDisplayName}</span>
-                </p>
+                <AccountDropdown mobile />
 
                 <SignOutButton>
                   <button className="w-full px-7 py-2 bg-slate-700 hover:bg-slate-900 text-white rounded-full">
