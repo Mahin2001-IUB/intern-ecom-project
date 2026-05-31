@@ -1,17 +1,31 @@
-import AdminLayout from "@/components/admin/AdminLayout";
+import { ClerkProvider } from "@clerk/nextjs";
+import { Outfit } from "next/font/google";
+import { Toaster } from "react-hot-toast";
+import StoreProvider from "@/app/StoreProvider";
+import UserSync from "@/components/UserSync";
+import ProductDataLoader from "@/components/ProductDataLoader";
+import "./globals.css";
+
+const outfit = Outfit({ subsets: ["latin"], weight: ["400", "500", "600"] });
 
 export const metadata = {
-    title: "GoCart. - Admin",
-    description: "GoCart. - Admin",
+  title: "GoCart. - Shop smarter",
+  description: "GoCart. - Shop smarter",
 };
 
-export default function RootAdminLayout({ children }) {
-
-    return (
-        <>
-            <AdminLayout>
-                {children}
-            </AdminLayout>
-        </>
-    );
+export default function RootLayout({ children }) {
+  return (
+    <ClerkProvider>
+      <html lang="en">
+        <body className={`${outfit.className} antialiased`}>
+          <StoreProvider>
+            <Toaster />
+            <UserSync />
+            <ProductDataLoader />
+            {children}
+          </StoreProvider>
+        </body>
+      </html>
+    </ClerkProvider>
+  );
 }
