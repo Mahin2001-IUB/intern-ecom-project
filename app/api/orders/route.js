@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req) {
   try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
-    const userId = "user_1";
     const storeId = "store_1";
-
     const { items, addressId, paymentMethod, coupon } = body;
 
     if (!items || items.length === 0) {
@@ -20,6 +28,20 @@ export async function POST(req) {
     if (!addressId) {
       return NextResponse.json(
         { success: false, message: "Address is required" },
+        { status: 400 }
+      );
+    }
+
+    const address = await prisma.address.findFirst({
+      where: {
+        id: addressId,
+        userId,
+      },
+    });
+
+    if (!address) {
+      return NextResponse.json(
+        { success: false, message: "Invalid address selected" },
         { status: 400 }
       );
     }
@@ -46,7 +68,6 @@ export async function POST(req) {
 
     const orderItems = items.map((item) => {
       const product = products.find((p) => p.id === item.productId);
-
       const quantity = Number(item.quantity);
 
       subtotal += product.price * quantity;
@@ -70,7 +91,7 @@ export async function POST(req) {
         userId,
         storeId,
         addressId,
-        isPaid: paymentMethod === "STRIPE" ? false : false,
+        isPaid: false,
         paymentMethod,
         isCouponUsed: Boolean(coupon && coupon.code),
         coupon: coupon || {},
@@ -110,7 +131,14 @@ export async function POST(req) {
 
 export async function GET() {
   try {
-    const userId = "user_1";
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     const orders = await prisma.order.findMany({
       where: {

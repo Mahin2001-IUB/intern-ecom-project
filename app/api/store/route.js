@@ -1,17 +1,68 @@
 import { NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 import fs from "fs/promises";
 import path from "path";
 
 export const runtime = "nodejs";
 
+async function ensureUser() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return null;
+  }
+
+  const clerkUser = await currentUser();
+
+  const email =
+    clerkUser?.emailAddresses?.find(
+      (email) => email.id === clerkUser.primaryEmailAddressId
+    )?.emailAddress ||
+    clerkUser?.emailAddresses?.[0]?.emailAddress ||
+    "";
+
+  const name =
+    clerkUser?.fullName ||
+    `${clerkUser?.firstName || ""} ${clerkUser?.lastName || ""}`.trim() ||
+    "User";
+
+  const image = clerkUser?.imageUrl || "";
+
+  const user = await prisma.user.upsert({
+    where: { id: userId },
+    update: {
+      name,
+      email,
+      image,
+    },
+    create: {
+      id: userId,
+      name,
+      email,
+      image,
+      role: "CUSTOMER",
+      cart: {},
+    },
+  });
+
+  return user;
+}
+
 export async function GET() {
   try {
-    const userId = "user_1";
+    const user = await ensureUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     const store = await prisma.store.findFirst({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 
@@ -44,7 +95,15 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const userId = "user_1";
+    const user = await ensureUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
 
     const username = formData.get("username");
@@ -85,7 +144,7 @@ export async function POST(req) {
 
     const existingStore = await prisma.store.findFirst({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 
@@ -108,7 +167,7 @@ export async function POST(req) {
         })
       : await prisma.store.create({
           data: {
-            userId,
+            userId: user.id,
             username,
             name,
             description,
@@ -142,7 +201,15 @@ export async function POST(req) {
 
 export async function PUT(req) {
   try {
-    const userId = "user_1";
+    const user = await ensureUser();
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const formData = await req.formData();
 
     const username = formData.get("username");
@@ -165,7 +232,7 @@ export async function PUT(req) {
 
     const existingStore = await prisma.store.findFirst({
       where: {
-        userId,
+        userId: user.id,
       },
     });
 

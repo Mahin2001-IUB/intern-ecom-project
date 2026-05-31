@@ -1,9 +1,17 @@
 import { NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const userId = "user_1";
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
 
     const addresses = await prisma.address.findMany({
       where: {
@@ -34,7 +42,15 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const userId = "user_1";
+    const { userId } = await auth();
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const body = await req.json();
 
     const { name, email, street, city, state, zip, country, phone } = body;
